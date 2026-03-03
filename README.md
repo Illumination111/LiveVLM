@@ -1,5 +1,5 @@
 # LiveVLM
-LiveVLM: Efficient Online Video Understanding via Streaming-Oriented KV Cache and Retrieval
+LiveVLM: Efficient Online Video Understanding via Streaming-Oriented KV Cache and Retrieval (DAC'26)
 
 ## Setup
 
