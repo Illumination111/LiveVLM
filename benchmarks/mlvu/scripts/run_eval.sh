@@ -1,13 +1,13 @@
 MODEL=lmms-lab/llava-onevision-qwen2-7b-ov
 
-#################################
+############# Parameters ###########
 FPS=0.5
 CACHE_SIZE=12000
 CLIP_FRAME_NUM=32
 RECENT_FRAMES=2
 SCATTER_RATIO=0.5
 RETR_RATIO=0.4
-#################################
+####################################
 
 EXP_TAG=cache_${CACHE_SIZE}_clip_${CLIP_FRAME_NUM}_recent_${RECENT_FRAMES}_scatter_${SCATTER_RATIO}_retr_${RETR_RATIO}
 output_dir="benchmarks/mlvu/outputs/${FPS}fps/${EXP_TAG}"
