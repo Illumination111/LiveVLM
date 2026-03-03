@@ -7,6 +7,8 @@ CLIP_FRAME_NUM=32
 RECENT_FRAMES=2
 SCATTER_RATIO=0.5
 RETR_RATIO=0.4
+
+VIDEO_PATH=""
 ####################################
 
 EXP_TAG=cache_${CACHE_SIZE}_clip_${CLIP_FRAME_NUM}_recent_${RECENT_FRAMES}_scatter_${SCATTER_RATIO}_retr_${RETR_RATIO}
@@ -25,7 +27,7 @@ for IDX in $(seq 0 $((CHUNKS-1))); do
   CUDA_VISIBLE_DEVICES=${GPULIST[$IDX]} python3 benchmarks/mlvu/run_streaming_qa.py \
     --model_path $MODEL \
     --gt_file benchmarks/mlvu/dev_debug_mc.json \
-    --video_path /home/zyning/_datasets/MLVU_dev/MLVU_dev/MLVU/video \
+    --video_path ${VIDEO_PATH} \
     --output_dir ${output_dir} \
     --output_name ${CHUNKS}_${IDX} \
     --num_chunks ${CHUNKS} \
