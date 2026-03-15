@@ -1,5 +1,6 @@
 # LiveVLM
 LiveVLM: Efficient Online Video Understanding via Streaming-Oriented KV Cache and Retrieval (DAC'26)
+---
 
 ## Setup
 
@@ -20,11 +21,28 @@ pip install flash-attn==2.7.3 --no-build-isolation --no-cache-dir
 pip install -e .
 ```
 
+---
+
 ## Example Evaluation of MLVU
 Update the corresponding arguments in `run_eval.sh`, then execute the following command:
 ```bash
 bash benchmarks/mlvu/scripts/run_eval.sh
 ```
+Please download videos from the benchmark's official website and fill the video directory into `VIDEO_PATH` in `run_eval.sh`.
+
+---
+
+## Key Arguments
+
+| Argument | Description |
+|---|---|
+| `--cache_size` | Total KV cache token budget. |
+| `--recent_frames` | Number of frames containing recent tokens. |
+| `--clip_frame_num` | Clip size for online video processing. |
+| `--scatter_ratio` | Ratio of retained tokens scattered across the context outside Top-K tokens (VSB). |
+| `--retr_ratio` | Ratio of tokens retrieved from the cache for question-anwering (PaR). |
+
+
 
 ## Citation
 If you find LiveVLM useful in your research, please consider citing our work.
