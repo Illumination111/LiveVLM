@@ -63,6 +63,12 @@ class StreamCache(DynamicCache):
         self.observation_len = 32
         self.tmp_key_cache = []
         self.tmp_value_cache = []
+        # BioCache adapter observability. These fields do not participate in
+        # cache selection and therefore keep the official runner behaviour.
+        self.enable_biocache_observability = False
+        self.tmp_query_cache = []
+        self.retrieval_trace = []
+        self.last_temporary_cache_stats = {}
 
     def initialize(
         self, 
@@ -116,6 +122,8 @@ class StreamCache(DynamicCache):
             query_states = cache_kwargs["query_states"]
             observation_len = self.observation_len
             query_states = query_states[:,:,:observation_len,:].mean(dim=-2, keepdim=True)
+            if self.enable_biocache_observability:
+                self.tmp_query_cache.append(query_states)
             prefix_len = cache_kwargs["prefix_len"]
 
             sparse = cache_kwargs["sparse"]
@@ -129,6 +137,13 @@ class StreamCache(DynamicCache):
 
             video_end_idx = kv_len-(self.RECENT_GPU_MEMORY+remainder)
             if video_end_idx <= prefix_len:
+                if self.enable_biocache_observability:
+                    self.retrieval_trace.append({
+                        "layer": layer_idx,
+                        "available_chunks": 0,
+                        "selected_chunks": 0,
+                        "selected_indices": [],
+                    })
                 self.tmp_key_cache.append(key_states)
                 self.tmp_value_cache.append(value_states)
                 self.tmp_key_cache[layer_idx] = torch.cat([self.tmp_key_cache[layer_idx], new_key_states], dim=-2)
@@ -153,6 +168,13 @@ class StreamCache(DynamicCache):
             top_indices = attn_weights.sort(dim=-1, descending=True)[1]
             top_indices = top_indices[:,:,:retr_chunk_num]
             top_indices = top_indices.sort(dim=-1)[0]
+            if self.enable_biocache_observability:
+                self.retrieval_trace.append({
+                    "layer": layer_idx,
+                    "available_chunks": int(attn_weights.shape[2]),
+                    "selected_chunks": int(retr_chunk_num),
+                    "selected_indices": top_indices.detach().cpu().tolist(),
+                })
             top_indices = top_indices.unsqueeze(-1).unsqueeze(-1).repeat(1, 1, 1, self.chunk_size, head_dim)
             video_keys = video_keys.gather(index=top_indices, dim=2).reshape(bsz, num_kv_heads, -1, head_dim)
             video_values = video_values.gather(index=top_indices, dim=2).reshape(bsz, num_kv_heads, -1, head_dim)
@@ -278,6 +300,23 @@ class StreamCache(DynamicCache):
             self.backup_cache_len = self.key_cache[0].shape[2]
     
     def reset_cache(self):
+        # Record exact temporary-cache tensor bytes before the official reset.
+        # Only scalar/list metadata survives, so query-time tensors remain
+        # temporary and are not accidentally counted as persistent state.
+        def _tensor_bytes(items):
+            return sum(
+                int(x.element_size()) * int(x.nelement())
+                for x in items
+                if hasattr(x, "element_size") and hasattr(x, "nelement")
+            )
+
+        if self.enable_biocache_observability:
+            self.last_temporary_cache_stats = {
+                "key_bytes": _tensor_bytes(self.tmp_key_cache),
+                "value_bytes": _tensor_bytes(self.tmp_value_cache),
+                "query_bytes": _tensor_bytes(self.tmp_query_cache),
+                "retrieval_trace": list(self.retrieval_trace),
+            }
         if not self.enable_retrieval:
             if self.backup_cache_len > 0:
                 for layer_idx in range(len(self.key_cache)):
@@ -290,6 +329,8 @@ class StreamCache(DynamicCache):
         else:
             self.tmp_key_cache.clear()
             self.tmp_value_cache.clear()
+            self.tmp_query_cache.clear()
+            self.retrieval_trace.clear()
             self.temporal_tokens_in_generate = self._prev_temporal_tokens
 
     def flush_cache(self):
