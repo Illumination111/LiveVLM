@@ -208,8 +208,12 @@ class LiveVLMStreamAdapter:
     def persistent_state(self) -> Mapping[str, Any]:
         return {"stream_cache": self.stream_cache}
 
-    def static_state(self) -> Mapping[str, Any]:
+    def static_extra_state(self) -> Mapping[str, Any]:
         return {"model": self.model, "budget": self.budget, "config": vars(self.args)}
+
+    def static_state(self) -> Mapping[str, Any]:
+        """Backward-compatible alias for the canonical static-extra state."""
+        return self.static_extra_state()
 
     def temporary_state(self) -> Mapping[str, Any]:
         cache = self.stream_cache
@@ -221,7 +225,9 @@ class LiveVLMStreamAdapter:
         }
 
     def state_bytes(self) -> Dict[str, Any]:
-        return state_report(self.persistent_state(), self.static_state(), self.temporary_state())
+        return state_report(
+            self.persistent_state(), self.static_extra_state(), self.temporary_state()
+        )
 
     def close_stream(self) -> Dict[str, Any]:
         if not self._opened:

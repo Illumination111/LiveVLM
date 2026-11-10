@@ -11,8 +11,9 @@ official `benchmarks/mlvu/run_streaming_qa.py` runner.
 - `answer(query)` (alias `query`): the query timestamp must equal the current
   watermark, preventing first-question full-video pre-encoding.
 - `close_stream()`
-- `persistent_state()`, `static_state()`, `temporary_state()`, and
+- `persistent_state()`, `static_extra_state()`, `temporary_state()`, and
   `state_bytes()` expose recursively measured state.
+  `static_state()` remains a compatibility alias.
 
 The adapter batches only externally supplied frames into the official
 `frame_encoding` function. It uses the official `response` function for
